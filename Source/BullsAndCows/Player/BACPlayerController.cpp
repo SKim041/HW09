@@ -5,6 +5,21 @@
 #include "BullsAndCows/BullsAndCows.h"
 #include "BullsAndCows/UI/BACChatInput.h"
 #include "EngineUtils.h"
+#include "Net/UnrealNetwork.h"
+#include "Kismet/GameplayStatics.h"
+#include "BullsAndCows/Game/BACGameModeBase.h"
+#include "BACPlayerState.h"
+
+ABACPlayerController::ABACPlayerController()
+{
+	bReplicates = true;
+}
+
+void ABACPlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ThisClass, NotificationText);
+}
 
 void ABACPlayerController::BeginPlay()
 {
@@ -26,6 +41,15 @@ void ABACPlayerController::BeginPlay()
 			ChatInputWidgetInstance->AddToViewport();
 		}
 	}
+
+	if (IsValid(NotificationTextWidgetClass) == true)
+	{
+		NotificationTextWidgetInstance = CreateWidget<UUserWidget>(this, NotificationTextWidgetClass);
+		if (IsValid(NotificationTextWidgetInstance) == true)
+		{
+			NotificationTextWidgetInstance->AddToViewport();
+		}
+	}
 }
 
 void ABACPlayerController::SetChatMessageString(const FString& InChatMessageString)
@@ -33,7 +57,13 @@ void ABACPlayerController::SetChatMessageString(const FString& InChatMessageStri
 	ChatMessageString = InChatMessageString;
 	if (IsLocalController() == true)
 	{
-		ServerRPCPrintChatMessageString(InChatMessageString);
+		ABACPlayerState* BACPS = GetPlayerState<ABACPlayerState>();
+		if (IsValid(BACPS) == true)
+		{
+			FString CombinedMessageString = BACPS->GetPlayerInfoString() + TEXT(": ") + InChatMessageString;
+
+			ServerRPCPrintChatMessageString(CombinedMessageString);
+		}
 	}
 }
 
@@ -49,12 +79,13 @@ void ABACPlayerController::ClientRPCPrintChatMessageString_Implementation(const 
 
 void ABACPlayerController::ServerRPCPrintChatMessageString_Implementation(const FString& InChatMessageString)
 {
-	for (TActorIterator<ABACPlayerController> It(GetWorld()); It; ++It)
+	AGameModeBase* GM = UGameplayStatics::GetGameMode(this);
+	if (IsValid(GM) == true)
 	{
-		ABACPlayerController* CXPlayerController = *It;
-		if (IsValid(CXPlayerController) == true)
+		ABACGameModeBase* BACGM = Cast<ABACGameModeBase>(GM);
+		if (IsValid(BACGM) == true)
 		{
-			CXPlayerController->ClientRPCPrintChatMessageString(InChatMessageString);
+			BACGM->PrintChatMessageString(this, InChatMessageString);
 		}
 	}
 }

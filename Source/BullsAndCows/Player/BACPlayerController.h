@@ -16,6 +16,8 @@ class BULLSANDCOWS_API ABACPlayerController : public APlayerController
 	GENERATED_BODY()
 
 public:
+	ABACPlayerController();
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void BeginPlay() override;
 	void SetChatMessageString(const FString& InChatMessageString);
 	void PrintChatMessageString(const FString& InChatMessageString);
@@ -30,6 +32,14 @@ protected:
 	TSubclassOf<UBACChatInput> ChatInputWidgetClass;
 	UPROPERTY()
 	TObjectPtr<UBACChatInput> ChatInputWidgetInstance;
+	UPROPERTY(EditDefaultsOnly, Category = "BAC")
+	TSubclassOf<UUserWidget> NotificationTextWidgetClass;
+	UPROPERTY()
+	TObjectPtr<UUserWidget> NotificationTextWidgetInstance;
 
 	FString ChatMessageString;
+
+public:
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	FText NotificationText;
 };
