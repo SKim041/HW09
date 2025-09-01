@@ -2,31 +2,29 @@
 
 
 #include "BACPawn.h"
+#include "BullsAndCows/BullsAndCows.h"
 
 
 // Sets default values
 ABACPawn::ABACPawn()
 {
-	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
 }
 
 // Called when the game starts or when spawned
 void ABACPawn::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	FString RoleString = BACFunctionLibrary::GetRoleString(this);
+	FString CombinedString = FString::Printf(
+		TEXT("BACPawn::BeginPlay() %s [%s]"), *BACFunctionLibrary::GetNetModeString(this), *RoleString);
+	BACFunctionLibrary::MyPrintString(this, CombinedString, 10.f);
 }
 
-// Called every frame
-void ABACPawn::Tick(float DeltaTime)
+void ABACPawn::PossessedBy(AController* NewController)
 {
-	Super::Tick(DeltaTime);
+	Super::PossessedBy(NewController);
+	FString RoleString = BACFunctionLibrary::GetRoleString(this);
+	FString CombinedString = FString::Printf(
+		TEXT("BACPawn::PossessedBy() %s [%s]"), *BACFunctionLibrary::GetNetModeString(this), *RoleString);
+	BACFunctionLibrary::MyPrintString(this, CombinedString, 10.f);
 }
-
-// Called to bind functionality to input
-void ABACPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-}
-
