@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "BACChatInput.generated.h"
 
+class UEditableTextBox;
 /**
  * 
  */
@@ -13,4 +14,8 @@ UCLASS()
 class BULLSANDCOWS_API UBACChatInput : public UUserWidget
 {
 	GENERATED_BODY()
+
+public:
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UEditableTextBox> EditableTextBox_ChatInput;
 };
