@@ -22,14 +22,21 @@ public:
 	FString JudgeResult(const FString& InSecretNumberString, const FString& InGuessNumberString);
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	void PrintChatMessageString(class ABACPlayerController* InChattingPlayerController,
 	                            const FString& InChatMessageString);
 	void IncreaseGuessCount(ABACPlayerController* InChattingPlayerController);
 
 	void ResetGame();
 	void JudgeGame(ABACPlayerController* InChattingPlayerController, int InStrikeCount);
+	void StartNextRound();
 
 protected:
 	FString SecretNumberString;
 	TArray<TObjectPtr<class ABACPlayerController>> AllPlayerControllers;
+
+	int32 CurrentRoundNum = 0;
+	uint8 bIsWaiting : 1;
+	float RoundInterval = 3.f;
+	FTimerHandle StartRoundHandle;
 };

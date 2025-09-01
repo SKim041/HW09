@@ -54,15 +54,12 @@ void ABACPlayerController::BeginPlay()
 
 void ABACPlayerController::SetChatMessageString(const FString& InChatMessageString)
 {
-	ChatMessageString = InChatMessageString;
 	if (IsLocalController() == true)
 	{
 		ABACPlayerState* BACPS = GetPlayerState<ABACPlayerState>();
 		if (IsValid(BACPS) == true)
 		{
-			FString CombinedMessageString = BACPS->GetPlayerInfoString() + TEXT(": ") + InChatMessageString;
-
-			ServerRPCPrintChatMessageString(CombinedMessageString);
+			ServerRPCPrintChatMessageString(InChatMessageString);
 		}
 	}
 }

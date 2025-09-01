@@ -59,6 +59,7 @@ bool ABACGameModeBase::IsGuessNumberString(const FString& InNumberString)
 
 	do
 	{
+		if (bIsWaiting) break;
 		if (InNumberString.Len() != 3)
 		{
 			break;
@@ -121,29 +122,49 @@ FString ABACGameModeBase::JudgeResult(const FString& InSecretNumberString, const
 void ABACGameModeBase::BeginPlay()
 {
 	Super::BeginPlay();
-	SecretNumberString = GenerateSecretNumber();
-	UE_LOG(LogTemp, Error, TEXT("%s"), *SecretNumberString);
+	bIsWaiting = false;
+	ResetGame();
+}
+
+void ABACGameModeBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	GetWorldTimerManager().ClearTimer(StartRoundHandle);
 }
 
 void ABACGameModeBase::PrintChatMessageString(class ABACPlayerController* InChattingPlayerController,
                                               const FString& InChatMessageString)
 {
-	FString ChatMessageString = InChatMessageString;
+	FString PlayerMessageString = "";
 	int Index = InChatMessageString.Len() - 3;
 	FString GuessNumberString = InChatMessageString.RightChop(Index);
 	if (IsGuessNumberString(GuessNumberString) == true)
 	{
 		FString JudgeResultString = JudgeResult(SecretNumberString, GuessNumberString);
 		IncreaseGuessCount(InChattingPlayerController);
+		ABACPlayerState* BACPS = InChattingPlayerController->GetPlayerState<ABACPlayerState>();
+		if (IsValid(BACPS) == true)
+		{
+			PlayerMessageString = BACPS->GetPlayerInfoString() + TEXT(": ") + InChatMessageString;
+		}
 		for (TActorIterator<ABACPlayerController> It(GetWorld()); It; ++It)
 		{
 			ABACPlayerController* BACPlayerController = *It;
 			if (IsValid(BACPlayerController) == true)
 			{
-				FString CombinedMessageString = InChatMessageString + TEXT(" -> ") + JudgeResultString;
+				int32 StrikeCount = FCString::Atoi(*JudgeResultString.Left(1));
+
+				if (IsValid(BACPS) == true)
+				{
+					if (BACPS->CurrentGuessCount > BACPS->MaxGuessCount)
+					{
+						JudgeResultString = TEXT("OUT OF CHANCES");
+						StrikeCount = 0;
+					}
+				}
+				FString CombinedMessageString = PlayerMessageString + TEXT(" -> ") + JudgeResultString;
 				BACPlayerController->ClientRPCPrintChatMessageString(CombinedMessageString);
 
-				int32 StrikeCount = FCString::Atoi(*JudgeResultString.Left(1));
 				JudgeGame(InChattingPlayerController, StrikeCount);
 			}
 		}
@@ -172,8 +193,9 @@ void ABACGameModeBase::IncreaseGuessCount(ABACPlayerController* InChattingPlayer
 
 void ABACGameModeBase::ResetGame()
 {
+	if (bIsWaiting == true) return;
 	SecretNumberString = GenerateSecretNumber();
-
+	UE_LOG(LogTemp, Error, TEXT("%s"), *SecretNumberString);
 	for (const auto& BACPlayerController : AllPlayerControllers)
 	{
 		ABACPlayerState* BACPS = BACPlayerController->GetPlayerState<ABACPlayerState>();
@@ -182,6 +204,9 @@ void ABACGameModeBase::ResetGame()
 			BACPS->CurrentGuessCount = 0;
 		}
 	}
+	bIsWaiting = true;
+	GetWorld()->GetTimerManager().SetTimer(StartRoundHandle, this, &ABACGameModeBase::StartNextRound, RoundInterval,
+	                                       false);
 }
 
 void ABACGameModeBase::JudgeGame(ABACPlayerController* InChattingPlayerController, int InStrikeCount)
@@ -195,10 +220,9 @@ void ABACGameModeBase::JudgeGame(ABACPlayerController* InChattingPlayerControlle
 			{
 				FString CombinedMessageString = BACPS->PlayerNameString + TEXT(" has won the game.");
 				BACPlayerController->NotificationText = FText::FromString(CombinedMessageString);
-
-				ResetGame();
 			}
 		}
+		ResetGame();
 	}
 	else
 	{
@@ -221,9 +245,19 @@ void ABACGameModeBase::JudgeGame(ABACPlayerController* InChattingPlayerControlle
 			for (const auto& BACPlayerController : AllPlayerControllers)
 			{
 				BACPlayerController->NotificationText = FText::FromString(TEXT("Draw..."));
-
-				ResetGame();
 			}
+			ResetGame();
 		}
 	}
+}
+
+void ABACGameModeBase::StartNextRound()
+{
+	CurrentRoundNum++;
+	for (const auto& BACPlayerController : AllPlayerControllers)
+	{
+		BACPlayerController->NotificationText = FText::FromString(
+			FString::Printf(TEXT("Round %d"), CurrentRoundNum));
+	}
+	bIsWaiting = false;
 }
