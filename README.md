@@ -35,7 +35,3 @@
 - **엔진**: Unreal Engine
 - **네트워킹**: Dedicated Server
 - **언어**: C++ / Blueprint
-
----
-
-*멀티플레이어 숫자야구의 재미를 경험해보세요!*
